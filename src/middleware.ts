@@ -5,24 +5,23 @@ import type { NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // 1. Lewati halaman login dan API auth agar tidak looping
+  // 1. Izinkan akses ke login dan API auth
   if (pathname.startsWith('/admin/login') || pathname.startsWith('/api/auth')) {
     return NextResponse.next()
   }
 
-  // 2. Ambil token. 
-  // Di Vercel (HTTPS), nama cookienya sering berubah jadi __Secure-next-auth.session-token
+  // 2. Ambil token dengan konfigurasi secureCookie yang sesuai environment
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
-    // Tambahkan ini agar middleware lebih teliti mencari cookie di HTTPS
+    // Penting: Harus true di produksi (Vercel) agar bisa baca __Secure- cookie
     secureCookie: process.env.NODE_ENV === "production",
   })
 
-  // 3. Jika tidak ada token dan mencoba akses /admin, tendang ke login
+  // 3. Jika tidak ada token saat akses /admin, redirect ke login
   if (!token) {
     const loginUrl = new URL('/admin/login', req.url)
-    // Tambahkan callbackUrl agar setelah login bisa balik lagi ke halaman yang dituju
+    // Simpan halaman asal agar bisa kembali setelah login
     loginUrl.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(loginUrl)
   }
@@ -31,5 +30,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // Hanya jalankan middleware untuk route /admin
   matcher: ['/admin/:path*'],
 }
