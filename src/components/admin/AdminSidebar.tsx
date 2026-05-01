@@ -6,7 +6,10 @@ import { signOut } from 'next-auth/react'
 
 const menuItems = [
   { href: '/admin', label: '📊 Dashboard' },
-  { href: '/admin/albums', label: '🎵 Albums' },
+  { href: '/admin/hero', label: '⚡ Hero Banner' }, // Menu Baru
+  { href: '/admin/members', label: '🎸 Members' }, // Tambah Menu Members
+  { href: '/admin/albums', label: '💿 Albums' },
+  { href: '/admin/songs', label: '🎵 Songs / Singles' }, // Tambah Menu Songs
   { href: '/admin/shows', label: '🎤 Show Dates' },
   { href: '/admin/gallery', label: '🖼️ Gallery' },
   { href: '/admin/news', label: '📰 News' },
@@ -35,7 +38,7 @@ export default function AdminSidebar() {
         <p style={{ color: '#555', fontSize: '0.75rem', letterSpacing: '0.1em' }}>ADMIN PANEL</p>
       </div>
 
-      <nav style={{ flex: 1 }}>
+      <nav style={{ flex: 1, overflowY: 'auto' }}> {/* Tambah overflowY biar kalau menu banyak bisa di-scroll */}
         {menuItems.map((item) => {
           const isActive = pathname === item.href
           return (
@@ -55,7 +58,7 @@ export default function AdminSidebar() {
         })}
       </nav>
 
-      <div style={{ padding: '0 1.5rem' }}>
+      <div style={{ padding: '0 1.5rem', marginTop: '1rem' }}>
         <button
           onClick={() => signOut({ callbackUrl: '/admin/login' })}
           style={{
@@ -68,6 +71,14 @@ export default function AdminSidebar() {
             cursor: 'pointer',
             fontSize: '0.85rem',
             transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = '#ff4444';
+            e.currentTarget.style.color = '#ff4444';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = '#333';
+            e.currentTarget.style.color = '#666';
           }}
         >
           🚪 Sign Out
