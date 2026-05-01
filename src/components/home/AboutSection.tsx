@@ -232,6 +232,149 @@ export default function AboutSection() {
         .delay-3 { animation-delay: 0.4s; }
         .delay-4 { animation-delay: 0.55s; }
         .delay-5 { animation-delay: 0.7s; }
+
+        /* ================================
+           ABOUT TOP ROW GRID
+        ================================ */
+        .about-top-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 3rem;
+          align-items: end;
+          margin-bottom: 4rem;
+        }
+
+        /* ================================
+           MEMBER GRID
+        ================================ */
+        .member-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+          gap: 2.5rem 2rem;
+        }
+
+        /* ================================
+           MAIN CONTENT PADDING
+        ================================ */
+        .about-content {
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: 5rem 2rem 3rem;
+          position: relative;
+          z-index: 1;
+        }
+
+        /* ================================
+           MOBILE: ≤ 640px
+        ================================ */
+        @media (max-width: 640px) {
+          /* Top row: stack vertically */
+          .about-top-row {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+          }
+
+          /* "About the Band" label geser ke kanan di mobile */
+          .about-band-label {
+            text-align: right;
+          }
+
+          /* Tighter content padding */
+          .about-content {
+            padding: 3rem 1.25rem 2rem;
+          }
+
+          /* Marquee logo smaller */
+          .marquee-logo-img {
+            height: 20px;
+          }
+
+          /* Member grid: 2 columns on small mobile */
+          .member-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem 1.25rem;
+          }
+
+          /* Member photo smaller on mobile */
+          .member-photo-wrap {
+            width: 100%;
+            height: 200px;
+          }
+
+          /* Ghost number smaller */
+          .member-number {
+            font-size: 2.8rem;
+            top: -8px;
+            left: -4px;
+          }
+
+          /* Disable translateY hover on touch — feels glitchy */
+          .member-card:hover {
+            transform: none;
+          }
+
+          /* Still show underline on tap via active */
+          .member-card:active .member-name-line::after {
+            width: 100%;
+          }
+
+          /* Quote block: tighter border */
+          .about-quote {
+            padding-left: 1rem !important;
+            border-left-width: 2px !important;
+          }
+
+          /* Bottom marquee names: smaller spacing */
+          .marquee-track-reverse span {
+            padding: 0 1rem !important;
+          }
+        }
+
+        /* ================================
+           TABLET: 641px – 900px
+        ================================ */
+        @media (min-width: 641px) and (max-width: 900px) {
+          .about-top-row {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+          }
+
+          .about-content {
+            padding: 4rem 1.75rem 2.5rem;
+          }
+
+          .member-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem 1.5rem;
+          }
+
+          .member-photo-wrap {
+            width: 100%;
+            height: 230px;
+          }
+        }
+
+        /* ================================
+           SAFE AREA (notch / home bar)
+        ================================ */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+          .about-marquee-bottom {
+            padding-bottom: max(14px, env(safe-area-inset-bottom));
+          }
+        }
+
+        /* ================================
+           TOUCH: disable pause-on-hover for marquee
+           (hover state sticks on touch devices)
+        ================================ */
+        @media (hover: none) {
+          .marquee-track:hover,
+          .marquee-track-reverse:hover {
+            animation-play-state: running;
+          }
+        }
       `}} />
 
       {/* GRAIN TEXTURE */}
@@ -268,32 +411,23 @@ export default function AboutSection() {
       </div>
 
       {/* ── MAIN CONTENT ── */}
-      <div style={{
-        maxWidth: '1100px',
-        margin: '0 auto',
-        padding: '5rem 2rem 3rem',
-        position: 'relative',
-        zIndex: 1,
-      }}>
+      <div className="about-content">
 
         {/* TOP ROW: eyebrow + heading */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '3rem',
-          alignItems: 'end',
-          marginBottom: '4rem',
-        }}>
+        <div className="about-top-row">
           <div className="fade-up delay-1">
-            <p style={{
-              fontFamily: "'Barlow', sans-serif",
-              fontWeight: 300,
-              letterSpacing: '0.4em',
-              color: '#e8200c',
-              fontSize: '0.75rem',
-              textTransform: 'uppercase',
-              marginBottom: '1.5rem',
-            }}>
+            <p
+              className="about-band-label"
+              style={{
+                fontFamily: "'Barlow', sans-serif",
+                fontWeight: 300,
+                letterSpacing: '0.4em',
+                color: '#e8200c',
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                marginBottom: '1.5rem',
+              }}
+            >
               About the Band
             </p>
             <h2 style={{
@@ -309,15 +443,18 @@ export default function AboutSection() {
           </div>
 
           <div className="fade-up delay-2" style={{ paddingBottom: '0.5rem' }}>
-            <p style={{
-              fontFamily: "'DM Serif Display', serif",
-              fontStyle: 'italic',
-              fontSize: 'clamp(1.05rem, 1.6vw, 1.25rem)',
-              lineHeight: 1.75,
-              color: '#888',
-              borderLeft: '2px solid #e8200c',
-              paddingLeft: '1.5rem',
-            }}>
+            <p
+              className="about-quote"
+              style={{
+                fontFamily: "'DM Serif Display', serif",
+                fontStyle: 'italic',
+                fontSize: 'clamp(1.05rem, 1.6vw, 1.25rem)',
+                lineHeight: 1.75,
+                color: '#888',
+                borderLeft: '2px solid #e8200c',
+                paddingLeft: '1.5rem',
+              }}
+            >
               Dakara is a rock band from Jakarta, Indonesia. The name is taken from Indian Sanskrit,
               meaning <span style={{ color: '#ccc', fontStyle: 'normal' }}>"all time"</span> — in the
               hope that Dakara&apos;s music will be remembered forever.
@@ -341,11 +478,7 @@ export default function AboutSection() {
         </p>
 
         {/* MEMBER GRID */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-          gap: '2.5rem 2rem',
-        }}>
+        <div className="member-grid">
           {members.length > 0 ? members.map((member, index) => (
             <div
               key={member.id}
@@ -423,14 +556,17 @@ export default function AboutSection() {
       </div>
 
       {/* ── MARQUEE BOTTOM (reverse, slower, muted) ── */}
-      <div style={{
-        overflow: 'hidden',
-        padding: '14px 0',
-        borderTop: '1px solid #161616',
-        marginTop: '4rem',
-        position: 'relative',
-        zIndex: 2,
-      }}>
+      <div
+        className="about-marquee-bottom"
+        style={{
+          overflow: 'hidden',
+          padding: '14px 0',
+          borderTop: '1px solid #161616',
+          marginTop: '4rem',
+          position: 'relative',
+          zIndex: 2,
+        }}
+      >
         <div className="marquee-track marquee-track-reverse">
           {[...Array(2)].flatMap(() =>
             ['MARVI PRANA', '·', 'SATRIA FAJAR', '·', 'DIFA KARINDRA', '·', 'ARYA KUSUMA', '·'].map((item, i) => (

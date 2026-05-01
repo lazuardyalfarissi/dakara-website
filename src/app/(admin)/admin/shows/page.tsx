@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ShowDate } from '@/types'
 import Button from '@/components/ui/Button'
@@ -10,103 +10,178 @@ export default function AdminShowsPage() {
   const [shows, setShows] = useState<ShowDate[]>([])
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
+  
+  // State khusus buat fitur EDIT
+  const [editId, setEditId] = useState<string | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  
   const supabase = createClient()
 
-  async function fetchShows() {
+  const fetchShows = useCallback(async () => {
     setFetchLoading(true)
-    const { data } = await supabase
-      .from('show_dates')
-      .select('*')
-      .order('show_date', { ascending: true })
-    setShows(data || [])
-    setFetchLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('show_dates')
+        .select('*')
+        .order('show_date', { ascending: true })
+      
+      if (error) throw error
+      setShows(data || [])
+    } catch (err: any) {
+      alert('Fetch Error: ' + err.message)
+    } finally {
+      setFetchLoading(false)
+    }
+  }, [supabase])
+
+  useEffect(() => { fetchShows() }, [fetchShows])
+
+  // FUNGSI UNTUK MENGISI FORM SAAT TOMBOL EDIT DIKLIK
+  const handleEditClick = (show: ShowDate) => {
+    setEditId(show.id)
+    if (formRef.current) {
+      // Isi otomatis input form dengan data yang mau diedit
+      const f = formRef.current
+      ;(f.elements.namedItem('event_name') as HTMLInputElement).value = show.event_name
+      ;(f.elements.namedItem('venue') as HTMLInputElement).value = show.venue
+      ;(f.elements.namedItem('city') as HTMLInputElement).value = show.city
+      ;(f.elements.namedItem('ticket_url') as HTMLInputElement).value = show.ticket_url || ''
+      ;(f.elements.namedItem('poster_url') as HTMLInputElement).value = show.poster_url || ''
+      
+      // Format datetime-local (YYYY-MM-DDThh:mm)
+      const date = new Date(show.show_date)
+      const formattedDate = date.toISOString().slice(0, 16)
+      ;(f.elements.namedItem('show_date') as HTMLInputElement).value = formattedDate
+      
+      // Scroll ke atas biar kelihatan formnya
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
-  useEffect(() => { fetchShows() }, [])
+  // BATALKAN EDIT
+  const cancelEdit = () => {
+    setEditId(null)
+    formRef.current?.reset()
+  }
 
+  // HANDLER SUBMIT (Bisa INSERT atau UPDATE)
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
+    
     const form = e.currentTarget
-    const event_name = (form.elements.namedItem('event_name') as HTMLInputElement).value
-    const venue = (form.elements.namedItem('venue') as HTMLInputElement).value
-    const city = (form.elements.namedItem('city') as HTMLInputElement).value
-    const show_date = (form.elements.namedItem('show_date') as HTMLInputElement).value
-    const ticket_url = (form.elements.namedItem('ticket_url') as HTMLInputElement).value
+    const formData = new FormData(form)
+    
+    const payload = {
+      event_name: formData.get('event_name') as string,
+      venue: formData.get('venue') as string,
+      city: formData.get('city') as string,
+      show_date: formData.get('show_date') as string,
+      ticket_url: formData.get('ticket_url') as string || null,
+      poster_url: formData.get('poster_url') as string || null,
+    }
 
-    const { error } = await supabase.from('show_dates').insert({
-      event_name, venue, city, show_date, ticket_url, is_sold_out: false
-    })
+    try {
+      if (editId) {
+        // JIKA LAGI MODE EDIT -> JALANKAN UPDATE
+        const { error } = await supabase
+          .from('show_dates')
+          .update(payload)
+          .eq('id', editId)
+        
+        if (error) throw error
+        alert('Jadwal Berhasil Diperbarui! ✨')
+      } else {
+        // JIKA MODE BIASA -> JALANKAN INSERT
+        const { error } = await supabase
+          .from('show_dates')
+          .insert([{ ...payload, is_sold_out: false }])
+        
+        if (error) throw error
+        alert('Show DAKARA Berhasil Ditambahkan! 🔥')
+      }
+      
+      cancelEdit()
+      fetchShows()
+    } catch (err: any) {
+      alert('Gagal Simpan: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    if (error) alert('Error: ' + error.message)
-    else { alert('Show berhasil ditambahkan!'); form.reset(); fetchShows() }
-    setLoading(false)
+  async function toggleSoldOut(id: string, currentStatus: boolean) {
+    await supabase.from('show_dates').update({ is_sold_out: !currentStatus }).eq('id', id)
+    fetchShows()
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Yakin mau hapus show ini?')) return
+    if (!confirm('Hapus jadwal ini bro?')) return
     await supabase.from('show_dates').delete().eq('id', id)
     fetchShows()
   }
 
-  async function toggleSoldOut(id: string, current: boolean) {
-    await supabase.from('show_dates').update({ is_sold_out: !current }).eq('id', id)
-    fetchShows()
-  }
-
   return (
-    <div>
-      <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '0.1em', marginBottom: '2rem' }}>SHOW DATES</h1>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
+      <h1 style={{ fontSize: '2.5rem', fontWeight: '900', letterSpacing: '0.2em', marginBottom: '3rem' }}>
+        SHOW DATES MANAGER
+      </h1>
 
-      <Card style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1rem', letterSpacing: '0.1em', color: '#666', marginBottom: '1.5rem' }}>+ TAMBAH SHOW</h2>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <input name="event_name" placeholder="Nama Event *" required
-            style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <input name="venue" placeholder="Venue *" required
-              style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
-            <input name="city" placeholder="Kota *" required
-              style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
+      <Card style={{ marginBottom: '4rem', background: '#080808', border: editId ? '1px solid #e8200c' : '1px solid #1a1a1a' }}>
+        <h2 style={{ fontSize: '0.8rem', color: '#e8200c', marginBottom: '2rem', letterSpacing: '0.3em' }}>
+          {editId ? '⚡ EDITING MODE' : '+ ADD NEW CONCERT'}
+        </h2>
+        <form ref={formRef} onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div style={{ gridColumn: 'span 2' }}>
+            <input name="event_name" placeholder="Event Name *" required style={inputStyle} />
           </div>
-          <input name="show_date" type="datetime-local" required
-            style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
-          <input name="ticket_url" placeholder="Link Tiket (opsional)"
-            style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
-          <Button type="submit" loading={loading}>TAMBAH SHOW</Button>
+          <input name="venue" placeholder="Venue *" required style={inputStyle} />
+          <input name="city" placeholder="City *" required style={inputStyle} />
+          <input name="show_date" type="datetime-local" required style={inputStyle} />
+          <input name="ticket_url" placeholder="Ticket URL (Optional)" style={inputStyle} />
+          <div style={{ gridColumn: 'span 2' }}>
+            <input name="poster_url" placeholder="Poster Image URL (Optional)" style={inputStyle} />
+          </div>
+          <div style={{ gridColumn: 'span 2', marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+            <Button type="submit" loading={loading} style={{ flex: 1, height: '3.5rem' }}>
+              {editId ? 'UPDATE SCHEDULE' : 'SAVE TO CALENDAR'}
+            </Button>
+            {editId && (
+              <Button type="button" onClick={cancelEdit} variant="ghost" style={{ height: '3.5rem' }}>
+                CANCEL
+              </Button>
+            )}
+          </div>
         </form>
       </Card>
 
-      <h2 style={{ fontSize: '1rem', letterSpacing: '0.1em', color: '#666', marginBottom: '1rem' }}>DAFTAR SHOW</h2>
-      {fetchLoading ? (
-        <p style={{ color: '#555' }}>Loading...</p>
-      ) : shows.length === 0 ? (
-        <p style={{ color: '#555' }}>Belum ada show.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {shows.map((show) => (
-            <Card key={show.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {fetchLoading ? <p>Syncing...</p> : shows.map(show => (
+          <Card key={show.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0a0a0a', border: editId === show.id ? '1px solid #e8200c' : '1px solid #111' }}>
+            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+              {show.poster_url && (
+                <img src={show.poster_url} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} alt="Poster" />
+              )}
               <div>
-                <p style={{ fontWeight: 'bold' }}>{show.event_name}</p>
-                <p style={{ color: '#555', fontSize: '0.85rem' }}>{show.venue}, {show.city}</p>
-                <p style={{ color: '#555', fontSize: '0.85rem' }}>
-                  {new Date(show.show_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
+                <h3 style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{show.event_name}</h3>
+                <p style={{ fontSize: '0.8rem', color: '#555' }}>{show.venue}, {show.city}</p>
+                <p style={{ fontSize: '0.75rem', color: '#e8200c' }}>{new Date(show.show_date).toLocaleString('id-ID')}</p>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <Button
-                  variant={show.is_sold_out ? 'ghost' : 'secondary'}
-                  size="sm"
-                  onClick={() => toggleSoldOut(show.id, show.is_sold_out)}
-                >
-                  {show.is_sold_out ? 'Mark Available' : 'Mark Sold Out'}
-                </Button>
-                <Button variant="danger" size="sm" onClick={() => handleDelete(show.id)}>Hapus</Button>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            </div>
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <Button size="sm" variant="ghost" onClick={() => handleEditClick(show)}>EDIT</Button>
+              <Button size="sm" variant={show.is_sold_out ? 'ghost' : 'secondary'} onClick={() => toggleSoldOut(show.id, show.is_sold_out)}>
+                {show.is_sold_out ? 'AVAILABLE' : 'SOLD OUT'}
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => handleDelete(show.id)}>DELETE</Button>
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   )
+}
+
+const inputStyle = {
+  width: '100%', padding: '1rem', background: '#111', border: '1px solid #222', color: '#fff', borderRadius: '4px', outline: 'none'
 }
