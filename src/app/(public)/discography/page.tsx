@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { Album } from '@/types'
-import Link from 'next/link'
+
 
 export default async function DiscographyPage() {
   const supabase = await createServerSupabaseClient()
