@@ -1,15 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    // Ini kuncinya: Biar build lanjut terus meskipun banyak warning/error linting
+    // Memaksa build lanjut terus meskipun ada warning/error linting
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Ini juga penting: Biar build nggak stop kalau ada error tipe data
+    // Memaksa build tidak stop kalau ada error tipe data (TypeScript)
     ignoreBuildErrors: true,
   },
-  // Opsional: Jika kamu ingin mematikan warning indikator di browser
   devIndicators: {
+    // Mematikan indikator build di pojok browser
     buildActivity: false,
   },
 };
