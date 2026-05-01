@@ -33,7 +33,8 @@ export default function AdminLoginPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#111' }}>
       <div style={{ background: '#1a1a1a', padding: '2rem', borderRadius: '8px', width: '100%', maxWidth: '400px' }}>
-        <h1 style={{ color: '#fff', marginBottom: '1.5rem', textAlign: 'center' }}>DAKARA Admin</h1>
+        <h1 style={{ color: '#fff', marginBottom: '0.5rem', textAlign: 'center', letterSpacing: '0.2em' }}>DAKARA</h1>
+        <p style={{ color: '#555', textAlign: 'center', marginBottom: '2rem', fontSize: '0.85rem' }}>Admin Panel</p>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <input name="email" type="email" placeholder="Email" required
             style={{ padding: '0.75rem', borderRadius: '4px', border: '1px solid #333', background: '#222', color: '#fff' }} />

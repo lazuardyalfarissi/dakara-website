@@ -10,7 +10,6 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        // Simple credential check — ganti dengan DB lookup kalo mau lebih proper
         if (
           credentials?.email === process.env.ADMIN_EMAIL &&
           credentials?.password === process.env.ADMIN_PASSWORD
@@ -22,7 +21,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   pages: {
-    signIn: '/admin/login',
+    signIn: '/admin/login',   // ← ini penting banget
   },
   session: {
     strategy: 'jwt',
