@@ -10,6 +10,10 @@ export default function AdminAlbumsPage() {
   const [albums, setAlbums] = useState<Album[]>([])
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
+  
+  // State baru untuk Edit
+  const [editingId, setEditingId] = useState<string | null>(null)
+  
   const supabase = createClient()
 
   async function fetchAlbums() {
@@ -24,6 +28,26 @@ export default function AdminAlbumsPage() {
 
   useEffect(() => { fetchAlbums() }, [])
 
+  // Fungsi untuk mengisi form saat tombol Edit diklik
+  const handleEditClick = (album: Album) => {
+    setEditingId(album.id)
+    const form = document.getElementById('album-form') as HTMLFormElement
+    if (form) {
+      (form.elements.namedItem('title') as HTMLInputElement).value = album.title || '';
+      (form.elements.namedItem('description') as HTMLTextAreaElement).value = album.description || '';
+      (form.elements.namedItem('release_date') as HTMLInputElement).value = album.release_date || '';
+      (form.elements.namedItem('spotify_url') as HTMLInputElement).value = album.spotify_url || '';
+      (form.elements.namedItem('youtube_url') as HTMLInputElement).value = album.youtube_url || '';
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    const form = document.getElementById('album-form') as HTMLFormElement
+    form.reset()
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -36,6 +60,8 @@ export default function AdminAlbumsPage() {
     const coverFile = (form.elements.namedItem('cover') as HTMLInputElement).files?.[0]
 
     let cover_url = null
+    
+    // Jika ada file baru, upload. Jika tidak dan sedang edit, pakai yang lama.
     if (coverFile) {
       const fileName = `${Date.now()}-${coverFile.name}`
       const { error: uploadError } = await supabase.storage
@@ -47,12 +73,33 @@ export default function AdminAlbumsPage() {
       }
     }
 
-    const { error } = await supabase.from('albums').insert({
-      title, description, release_date, spotify_url, youtube_url, cover_url
-    })
+    const payload: any = { title, description, release_date, spotify_url, youtube_url }
+    if (cover_url) payload.cover_url = cover_url
 
-    if (error) alert('Error: ' + error.message)
-    else { alert('Album berhasil ditambahkan!'); form.reset(); fetchAlbums() }
+    let error;
+    if (editingId) {
+      // UPDATE
+      const { error: updateError } = await supabase
+        .from('albums')
+        .update(payload)
+        .eq('id', editingId)
+      error = updateError
+    } else {
+      // INSERT
+      const { error: insertError } = await supabase
+        .from('albums')
+        .insert(payload)
+      error = insertError
+    }
+
+    if (error) {
+      alert('Error: ' + error.message)
+    } else {
+      alert(editingId ? 'Album berhasil diperbarui!' : 'Album berhasil ditambahkan!')
+      form.reset()
+      setEditingId(null)
+      fetchAlbums()
+    }
     setLoading(false)
   }
 
@@ -66,16 +113,18 @@ export default function AdminAlbumsPage() {
     <div>
       <h1 style={{ fontSize: '2rem', fontWeight: '900', letterSpacing: '0.1em', marginBottom: '2rem' }}>ALBUMS</h1>
 
-      {/* Form Tambah Album */}
+      {/* Form Tambah/Edit Album */}
       <Card style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1rem', letterSpacing: '0.1em', color: '#666', marginBottom: '1.5rem' }}>+ TAMBAH ALBUM</h2>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <h2 style={{ fontSize: '1rem', letterSpacing: '0.1em', color: '#666', marginBottom: '1.5rem' }}>
+          {editingId ? 'EDIT ALBUM' : '+ TAMBAH ALBUM'}
+        </h2>
+        <form id="album-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <input name="title" placeholder="Judul Album *" required
             style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
           <textarea name="description" placeholder="Deskripsi" rows={3}
             style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff', resize: 'vertical' }} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <input name="release_date" type="date" placeholder="Tanggal Rilis"
+            <input name="release_date" type="date"
               style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
             <input name="cover" type="file" accept="image/*"
               style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
@@ -84,7 +133,15 @@ export default function AdminAlbumsPage() {
             style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
           <input name="youtube_url" placeholder="YouTube URL"
             style={{ padding: '0.75rem', background: '#111', border: '1px solid #333', borderRadius: '4px', color: '#fff' }} />
-          <Button type="submit" loading={loading}>TAMBAH ALBUM</Button>
+          
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <Button type="submit" loading={loading} style={{ flex: 1 }}>
+              {editingId ? 'SIMPAN PERUBAHAN' : 'TAMBAH ALBUM'}
+            </Button>
+            {editingId && (
+              <Button type="button" variant="secondary" onClick={handleCancelEdit}>BATAL</Button>
+            )}
+          </div>
         </form>
       </Card>
 
@@ -109,7 +166,10 @@ export default function AdminAlbumsPage() {
                   {album.songs?.length || 0} songs
                 </p>
               </div>
-              <Button variant="danger" size="sm" onClick={() => handleDelete(album.id)}>Hapus</Button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <Button size="sm" onClick={() => handleEditClick(album)}>Edit</Button>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(album.id)}>Hapus</Button>
+              </div>
             </Card>
           ))}
         </div>
