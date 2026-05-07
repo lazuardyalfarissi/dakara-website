@@ -1,336 +1,492 @@
+'use client'
+
 import Link from 'next/link'
 import { ShowDate } from '@/types'
+import { useScrollReveal } from '@/hooks/useScrollReveal'
 
 interface Props {
   shows: ShowDate[] | null
 }
 
 export default function ShowDatesPreview({ shows }: Props) {
+  const { ref: headerRef, isVisible: headerVisible } = useScrollReveal({ threshold: 0.1 })
+  const { ref: tableRef, isVisible: tableVisible } = useScrollReveal({ threshold: 0.05 })
+  const { ref: ctaRef, isVisible: ctaVisible } = useScrollReveal({ threshold: 0.1 })
+
   return (
     <section
       id="show-dates"
       style={{
-        background: '#080808',
-        color: '#fff',
-        overflow: 'hidden',
+        background: '#fff',
+        color: '#111',
         position: 'relative',
+        fontFamily: "'Space Mono', monospace",
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=Barlow:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
-        /* ================================
-           MARQUEE
-        ================================ */
-        .sd-marquee-track {
+        /* ── MARQUEE ── */
+        .sdp-marquee-track {
           display: flex;
           width: max-content;
-          animation: sd-marquee-scroll 30s linear infinite;
+          animation: sdp-marquee-scroll 30s linear infinite;
           will-change: transform;
         }
-
-        @keyframes sd-marquee-scroll {
+        @keyframes sdp-marquee-scroll {
           from { transform: translateX(0); }
           to   { transform: translateX(-50%); }
         }
 
-        @media (hover: none) {
-          .sd-marquee-track:hover { animation-play-state: running; }
+        /* ── LAYOUT ── */
+        .sdp-content {
+          max-width: 100%;
+          margin: 0 auto;
+          padding: 3rem 3rem 3rem;
+          position: relative;
         }
 
-        /* ================================
-           GRAIN
-        ================================ */
-        .sd-grain {
-          position: absolute;
-          inset: 0;
-          opacity: 0.03;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-          background-size: 300px;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        /* ================================
-           FADE UP
-        ================================ */
-        @keyframes sd-fade-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .sd-fade-up { animation: sd-fade-up 0.9s cubic-bezier(0.23, 1, 0.32, 1) both; }
-        .sd-d1 { animation-delay: 0.05s; }
-        .sd-d2 { animation-delay: 0.15s; }
-        .sd-d3 { animation-delay: 0.25s; }
-        .sd-d4 { animation-delay: 0.35s; }
-
-        /* ================================
-           DIVIDER
-        ================================ */
-        @keyframes sd-line-grow {
-          from { transform: scaleX(0); }
-          to   { transform: scaleX(1); }
-        }
-
-        .sd-divider {
-          height: 1px;
-          background: linear-gradient(to right, transparent, #333, transparent);
-          transform-origin: left;
-          animation: sd-line-grow 1.5s ease-out forwards;
+        /* ── HEADER ── */
+        .sdp-header-wrap {
+          position: relative;
+          text-align: center;
           margin-bottom: 3rem;
         }
 
-        /* ================================
-           SHOW ROW
-        ================================ */
-        .sd-row {
-          display: grid;
-          grid-template-columns: 120px 1fr auto;
+        .sdp-top-label {
+          font-size: clamp(11px, 1.2vw, 16px);
+          letter-spacing: 0.4em;
+          color: #888;
+          text-transform: uppercase;
+          margin: 0 0 0.75rem;
+        }
+
+        .sdp-main-title {
+          font-family: 'Space Mono', monospace;
+          font-size: clamp(3.5rem, 10vw, 7rem);
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          margin: 0 0 0.6rem;
+          line-height: 1;
+          color: #111;
+        }
+
+        .sdp-subtitle-text {
+          font-size: clamp(13px, 1.3vw, 18px);
+          letter-spacing: 0.2em;
+          color: #888;
+          margin: 0;
+          font-style: italic;
+        }
+
+        /* ── SECTION LABEL ── */
+        .sdp-section-label {
+          display: flex;
           align-items: center;
-          gap: 2rem;
-          padding: 1.75rem 0;
-          border-bottom: 1px solid #161616;
-          position: relative;
-          transition: background 0.3s ease;
-          cursor: default;
+          gap: 1rem;
+          margin: 3rem 0 0;
         }
 
-        .sd-row::before {
-          content: '';
-          position: absolute;
-          left: -2rem;
-          right: -2rem;
-          top: 0;
-          bottom: 0;
-          background: rgba(232, 32, 12, 0.04);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          pointer-events: none;
-        }
-
-        .sd-row:hover::before {
-          opacity: 1;
-        }
-
-        /* Red left bar on hover */
-        .sd-row::after {
-          content: '';
-          position: absolute;
-          left: -2rem;
-          top: 0;
-          bottom: 0;
-          width: 2px;
-          background: #e8200c;
-          transform: scaleY(0);
-          transform-origin: bottom;
-          transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-
-        .sd-row:hover::after {
-          transform: scaleY(1);
-        }
-
-        /* Date block */
-        .sd-date-block {
-          text-align: center;
-          padding: 0.75rem;
-          border: 1px solid #1e1e1e;
-          position: relative;
-          clip-path: polygon(0 0, 100% 0, 100% 80%, 88% 100%, 0 100%);
-          transition: border-color 0.3s, clip-path 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-          background: #0e0e0e;
-        }
-
-        .sd-row:hover .sd-date-block {
-          border-color: #e8200c;
-          clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%);
-        }
-
-        /* Date block corner accent */
-        .sd-date-block::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          right: 0;
-          width: 14px;
-          height: 14px;
-          background: #e8200c;
-          clip-path: polygon(100% 0, 100% 100%, 0 100%);
-          transition: width 0.4s, height 0.4s;
-        }
-
-        .sd-row:hover .sd-date-block::after {
-          width: 0;
-          height: 0;
-        }
-
-        /* Ticket button */
-        .sd-ticket-btn {
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: 0.85rem;
-          letter-spacing: 0.2em;
-          color: #fff;
-          border: 1px solid #333;
-          padding: 0.5rem 1.1rem;
-          text-decoration: none;
-          display: inline-block;
-          clip-path: polygon(0 0, 100% 0, 100% 70%, 88% 100%, 0 100%);
-          transition: background 0.25s, border-color 0.25s, clip-path 0.3s cubic-bezier(0.23,1,0.32,1), color 0.25s;
+        .sdp-section-label-text {
+          font-family: 'Space Mono', monospace;
+          font-size: clamp(13px, 1.4vw, 18px);
+          font-weight: 700;
+          letter-spacing: 0.25em;
+          text-transform: uppercase;
+          color: #aaa;
           white-space: nowrap;
         }
 
-        .sd-ticket-btn:hover {
-          background: #e8200c;
-          border-color: #e8200c;
-          clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%);
-        }
-
-        /* Sold out badge */
-        .sd-sold-out {
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: 0.85rem;
-          letter-spacing: 0.2em;
-          color: #e8200c;
-          border: 1px solid #e8200c;
-          padding: 0.5rem 1.1rem;
-          opacity: 0.6;
-          white-space: nowrap;
-        }
-
-        /* See all link */
-        .sd-see-all {
-          font-family: 'Bebas Neue', sans-serif;
-          font-size: 0.9rem;
-          letter-spacing: 0.3em;
-          color: #444;
-          text-decoration: none;
-          position: relative;
-          transition: color 0.3s;
-        }
-
-        .sd-see-all::after {
-          content: '';
-          position: absolute;
-          bottom: -3px;
-          left: 0;
-          width: 0;
+        .sdp-section-label-line {
+          flex: 1;
           height: 1px;
-          background: #e8200c;
-          transition: width 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+          background: #e8e8e8;
         }
 
-        .sd-see-all:hover {
+        .sdp-section-label-count {
+          font-family: 'Space Mono', monospace;
+          font-size: clamp(12px, 1.2vw, 16px);
+          letter-spacing: 0.1em;
+          color: #ccc;
+          white-space: nowrap;
+        }
+
+        /* ── TABLE HEADER — desktop ── */
+        .sdp-table-header {
+          display: grid;
+          grid-template-columns: 2fr 1.2fr 2.5fr 1.6fr;
+          gap: 0;
+          padding: 1rem 0;
+          margin-bottom: 0;
+        }
+
+        .sdp-table-header span {
+          font-family: 'Space Mono', monospace;
+          font-size: clamp(14px, 1.6vw, 22px);
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #111;
+          padding: 0 0.75rem;
+        }
+
+        .sdp-table-header span:first-child { padding-left: 0; }
+        .sdp-table-header span:last-child  { text-align: right; padding-right: 0; }
+
+        /* ── ROW — desktop ── */
+        .sdp-row {
+          display: grid;
+          grid-template-columns: 2fr 1.2fr 2.5fr 1.6fr;
+          gap: 0;
+          align-items: center;
+          min-height: 120px;
+          border-bottom: 1px solid #efefef;
+          transition: background 0.2s ease;
+        }
+
+        .sdp-row:hover { background: #fafafa; }
+
+        /* ── CELLS — desktop ── */
+        .sdp-cell {
+          padding: 1.5rem 0.75rem;
+          font-family: 'Space Mono', monospace;
+        }
+        .sdp-cell:first-child { padding-left: 0; }
+
+        .sdp-show-name {
+          display: block;
+          font-weight: 700;
+          font-size: clamp(16px, 1.8vw, 26px);
+          letter-spacing: 0.03em;
+          color: #111;
+          margin-bottom: 0.3rem;
+        }
+
+        .sdp-show-city {
+          display: block;
+          font-size: clamp(12px, 1.1vw, 16px);
+          color: #888;
+          letter-spacing: 0.08em;
+          font-weight: 400;
+        }
+
+        .sdp-time {
+          font-size: clamp(14px, 1.5vw, 22px);
+          letter-spacing: 0.05em;
+          color: #333;
+        }
+
+        .sdp-location-name {
+          font-size: clamp(14px, 1.5vw, 22px);
+          letter-spacing: 0.04em;
+          color: #333;
+        }
+
+        /* ── BUTTON CELL — desktop ── */
+        .sdp-cell-right {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 0.85rem;
+          padding-right: 0;
+        }
+
+        /* ── BUTTONS ── */
+        .sdp-btn {
+          display: inline-block;
+          font-family: 'Space Mono', monospace;
+          font-size: clamp(11px, 1.1vw, 15px);
+          font-weight: 700;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          border: 1.5px solid #111;
+          border-radius: 999px;
+          padding: 0.6rem 1.4rem;
+          cursor: pointer;
+          background: transparent;
+          color: #111;
+          white-space: nowrap;
+          text-decoration: none;
+          transition: background 0.2s, color 0.2s;
+          line-height: 1;
+        }
+
+        .sdp-btn:hover { background: #111; color: #fff; }
+
+        .sdp-btn-disabled {
+          display: inline-block;
+          font-family: 'Space Mono', monospace;
+          font-size: clamp(11px, 1.1vw, 15px);
+          font-weight: 700;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          border: 1.5px solid #ddd;
+          border-radius: 999px;
+          padding: 0.6rem 1.4rem;
+          background: transparent;
+          color: #ccc;
+          white-space: nowrap;
+          line-height: 1;
+        }
+
+        /* ── EMPTY STATE ── */
+        .sdp-empty {
+          padding: 4rem 0;
+          text-align: center;
+        }
+
+        .sdp-empty p {
+          font-size: clamp(11px, 1vw, 14px);
+          letter-spacing: 0.2em;
+          color: #aaa;
+          text-transform: uppercase;
+        }
+
+        /* ── SEE MORE ── */
+        .sdp-see-more-wrap {
+          display: flex;
+          justify-content: center;
+          margin-top: 3rem;
+        }
+
+        .sdp-see-more-btn {
+          font-family: 'Space Mono', monospace;
+          font-size: clamp(11px, 1.1vw, 15px);
+          font-weight: 700;
+          letter-spacing: 0.25em;
+          text-transform: uppercase;
+          border: 1.5px solid #111;
+          border-radius: 999px;
+          padding: 0.75rem 2.5rem;
+          text-decoration: none;
+          color: #111;
+          transition: background 0.2s, color 0.2s;
+          display: inline-block;
+        }
+
+        .sdp-see-more-btn:hover {
+          background: #111;
           color: #fff;
         }
 
-        .sd-see-all:hover::after {
-          width: 100%;
+        /* ── SCROLL REVEAL ── */
+        .sdp-sr {
+          opacity: 0;
+          transform: translateY(24px);
+          transition:
+            opacity  0.6s cubic-bezier(0.23, 1, 0.32, 1),
+            transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .sdp-sr-visible {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+        .sdp-row-reveal {
+          opacity: 0;
+          transform: translateX(-20px);
+          transition:
+            opacity  0.55s cubic-bezier(0.23, 1, 0.32, 1),
+            transform 0.55s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .sdp-row-reveal.sdp-sr-visible {
+          opacity: 1 !important;
+          transform: none !important;
         }
 
-        /* ================================
-           CONTENT WRAPPER
-        ================================ */
-        .sd-content {
-          max-width: 1100px;
-          margin: 0 auto;
-          padding: 5rem 2rem 3rem;
-          position: relative;
-          z-index: 1;
+        @media (prefers-reduced-motion: reduce) {
+          .sdp-sr, .sdp-row-reveal {
+            transition: opacity 0.3s ease !important;
+            transform: none !important;
+          }
         }
 
-        /* ================================
-           MOBILE ≤ 640px
-        ================================ */
+        /* ── TABLET ── */
+        @media (min-width: 641px) and (max-width: 900px) {
+          .sdp-content { padding: 2rem 2rem 2.5rem; }
+          .sdp-table-header,
+          .sdp-row { grid-template-columns: 2fr 1.2fr 2fr 1.5fr; }
+        }
+
+        /* ── LARGE DESKTOP ── */
+        @media (min-width: 1400px) {
+          .sdp-content { padding: 4rem 5rem 4rem; }
+          .sdp-row { min-height: 130px; }
+        }
+
+        /* ═══════════════════════════════════════════════
+           MOBILE PORTRAIT  ≤ 640px
+           Layout: card per-row, tombol di kanan atas
+        ════════════════════════════════════════════════ */
         @media (max-width: 640px) {
-          .sd-content {
-            padding: 3rem 1.25rem 2rem;
+          .sdp-content { padding: 1.5rem 1rem 2rem; }
+
+          /* Header tabel mobile: hanya Show + Show Detail */
+          .sdp-table-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            border-bottom: 2px solid #111;
+            padding: 0.5rem 0;
+            margin-bottom: 0;
           }
 
-          .sd-row {
-            grid-template-columns: 90px 1fr;
-            grid-template-rows: auto auto;
-            gap: 0.75rem 1rem;
+          /* Sembunyikan kolom Time & Location dari header */
+          .sdp-table-header span:nth-child(2),
+          .sdp-table-header span:nth-child(3) {
+            display: none;
           }
 
-          /* Ticket/sold-out spans full bottom row */
-          .sd-row-action {
-            grid-column: 1 / -1;
-            display: flex;
-            justify-content: flex-end;
+          .sdp-table-header span {
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            padding: 0;
+            color: #888;
           }
 
-          .sd-date-block {
-            padding: 0.5rem 0.4rem;
-          }
-
-          .sd-heading {
-            grid-template-columns: 1fr !important;
-            gap: 1rem !important;
-            margin-bottom: 2.5rem !important;
-            align-items: start !important;
-          }
-
-          .sd-title {
-            font-size: clamp(3.5rem, 16vw, 5rem) !important;
-          }
-
-          .sd-eyebrow {
+          .sdp-table-header span:last-child {
             text-align: right;
           }
+
+          /* Row jadi flex column, bukan grid */
+          .sdp-row {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            min-height: unset;
+            padding: 0.85rem 0;
+            gap: 0;
+            border-bottom: 1px solid #efefef;
+          }
+
+          /* Row bagian dalam: nama + tombol sejajar horizontal */
+          .sdp-row-inner-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+          }
+
+          /* Info nama show */
+          .sdp-show-name {
+            font-size: 13px;
+            margin-bottom: 0.1rem;
+            line-height: 1.3;
+          }
+
+          .sdp-show-city {
+            font-size: 11px;
+          }
+
+          /* Meta baris: tanggal + venue */
+          .sdp-mobile-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            margin-top: 0.35rem;
+          }
+
+          .sdp-mobile-meta-item {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: #999;
+            letter-spacing: 0.05em;
+          }
+
+          .sdp-mobile-meta-item strong {
+            color: #555;
+            font-weight: 700;
+          }
+
+          /* SEMBUNYIKAN cell desktop Time & Location di mobile */
+          .sdp-cell-desktop-time,
+          .sdp-cell-desktop-location {
+            display: none !important;
+          }
+
+          /* Tombol — tidak absolute, ikut flex normal di kanan atas */
+          .sdp-cell-right {
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+            flex-shrink: 0;
+            padding: 0;
+          }
+
+          .sdp-btn {
+            font-size: 9px;
+            padding: 0.4rem 0.8rem;
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+          }
+
+          .sdp-btn-disabled {
+            font-size: 9px;
+            padding: 0.4rem 0.8rem;
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+          }
+
+          .sdp-section-label { margin: 1.5rem 0 0; }
+
+          .sdp-see-more-wrap { margin-top: 2rem; }
+
+          .sdp-see-more-btn {
+            font-size: 10px;
+            padding: 0.65rem 1.75rem;
+            letter-spacing: 0.2em;
+          }
         }
 
-        /* ================================
-           TABLET 641–900px
-        ================================ */
-        @media (min-width: 641px) and (max-width: 900px) {
-          .sd-content {
-            padding: 4rem 1.75rem 2.5rem;
-          }
+        /* sdp-mobile-meta: HANYA tampil di mobile */
+        .sdp-mobile-meta { display: none; }
 
-          .sd-row {
-            grid-template-columns: 100px 1fr auto;
-            gap: 1.25rem;
-          }
+        /* Tombol mobile (di dalam row-inner-top): HANYA mobile */
+        .sdp-btn-mobile-only { display: none; }
 
-          .sd-heading {
-            grid-template-columns: 1fr !important;
-            gap: 1.5rem !important;
-            margin-bottom: 3rem !important;
+        /* Tombol desktop (kolom 4 grid): HANYA desktop */
+        .sdp-btn-desktop-only { display: flex; }
+
+        @media (max-width: 640px) {
+          .sdp-mobile-meta      { display: flex; }
+          .sdp-btn-mobile-only  { display: flex; }
+          .sdp-btn-desktop-only { display: none !important; }
+
+          /* sdp-row-inner-top: flex horizontal di mobile */
+          .sdp-row-inner-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
           }
         }
 
-        /* ================================
-           SAFE AREA
-        ================================ */
+        /* Di desktop sdp-row-inner-top tidak perlu flex — biarkan normal */
+        @media (min-width: 641px) {
+          .sdp-row-inner-top { display: block; }
+        }
+
         @supports (padding-bottom: env(safe-area-inset-bottom)) {
-          .sd-marquee-bottom {
+          .sdp-marquee-bottom {
             padding-bottom: max(14px, env(safe-area-inset-bottom));
           }
         }
       `}} />
 
-      {/* GRAIN */}
-      <div className="sd-grain" />
-
-      {/* ── MARQUEE TOP ── */}
+      {/* MARQUEE TOP */}
       <div style={{
-        background: '#0e0e0e',
-        borderBottom: '1px solid #161616',
+        background: '#111',
         overflow: 'hidden',
-        padding: '10px 0',
-        position: 'relative',
-        zIndex: 2,
+        padding: '9px 0',
+        borderBottom: '1px solid #222',
       }}>
-        <div className="sd-marquee-track">
+        <div className="sdp-marquee-track">
           {[...Array(2)].flatMap((_, gi) =>
-            ['LIVE DATES', '✦', 'ON STAGE', '✦', 'UPCOMING SHOWS', '✦', 'DAKARA LIVE', '✦',
-             'LIVE DATES', '✦', 'ON STAGE', '✦', 'UPCOMING SHOWS', '✦', 'DAKARA LIVE', '✦'].map((item, i) => (
+            ['LIVE DATES', '✦', 'ON STAGE', '✦', 'UPCOMING SHOWS', '✦', 'LIVE DATES', '✦',
+             'ON STAGE', '✦', 'UPCOMING SHOWS', '✦'].map((item, i) => (
               <span key={`${gi}-${i}`} style={{
-                fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: '0.85rem',
+                fontFamily: "'Space Mono', monospace",
+                fontSize: '0.7rem',
                 letterSpacing: '0.3em',
-                color: '#2a2a2a',
+                color: '#444',
                 padding: '0 2rem',
                 whiteSpace: 'nowrap',
               }}>
@@ -341,215 +497,180 @@ export default function ShowDatesPreview({ shows }: Props) {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT ── */}
-      <div className="sd-content">
+      {/* MAIN CONTENT */}
+      <div className="sdp-content">
 
-        {/* HEADING ROW */}
+        {/* HEADER */}
         <div
-          className="sd-heading sd-fade-up sd-d1"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '3rem',
-            alignItems: 'end',
-            marginBottom: '4rem',
-          }}
+          ref={headerRef as React.RefObject<HTMLDivElement>}
+          className={`sdp-header-wrap sdp-sr ${headerVisible ? 'sdp-sr-visible' : ''}`}
         >
-          <div>
-            <p
-              className="sd-eyebrow"
-              style={{
-                fontFamily: "'Barlow', sans-serif",
-                fontWeight: 300,
-                letterSpacing: '0.4em',
-                color: '#e8200c',
-                fontSize: '0.75rem',
-                textTransform: 'uppercase',
-                marginBottom: '1.5rem',
-              }}
-            >
-              Live Performances
-            </p>
-            <h2
-              className="sd-title"
-              style={{
-                fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: 'clamp(4rem, 9vw, 8rem)',
-                fontWeight: 400,
-                lineHeight: 0.9,
-                letterSpacing: '0.03em',
-                margin: 0,
-              }}
-            >
-              SHOW<br />DATES
-            </h2>
-          </div>
-
-          <div style={{ paddingBottom: '0.5rem' }}>
-            {!shows || shows.length === 0 ? (
-              <p style={{
-                fontFamily: "'DM Serif Display', serif",
-                fontStyle: 'italic',
-                fontSize: 'clamp(1rem, 1.6vw, 1.2rem)',
-                lineHeight: 1.75,
-                color: '#555',
-                borderLeft: '2px solid #222',
-                paddingLeft: '1.5rem',
-              }}>
-                No upcoming shows at the moment. Stay tuned.
-              </p>
-            ) : (
-              <p style={{
-                fontFamily: "'DM Serif Display', serif",
-                fontStyle: 'italic',
-                fontSize: 'clamp(1rem, 1.6vw, 1.2rem)',
-                lineHeight: 1.75,
-                color: '#888',
-                borderLeft: '2px solid #e8200c',
-                paddingLeft: '1.5rem',
-              }}>
-                Catch Dakara live — raw energy, full volume.{' '}
-                <span style={{ color: '#ccc', fontStyle: 'normal' }}>
-                  {shows.length} upcoming show{shows.length > 1 ? 's' : ''}.
-                </span>
-              </p>
-            )}
-          </div>
+          <p className="sdp-top-label">Our Sailing Schedule</p>
+          <h2 className="sdp-main-title">SHOW DATES</h2>
+          <p className="sdp-subtitle-text">Keep monitoring where we are, stay safe all of you</p>
         </div>
 
-        <div className="sd-divider sd-fade-up sd-d2" />
+        {/* TABLE */}
+        {!shows || shows.length === 0 ? (
+          <div
+            className={`sdp-empty sdp-sr ${tableVisible ? 'sdp-sr-visible' : ''}`}
+            ref={tableRef as React.RefObject<HTMLDivElement>}
+          >
+            <p>No upcoming shows at the moment. Stay tuned.</p>
+          </div>
+        ) : (
+          <div ref={tableRef as React.RefObject<HTMLDivElement>}>
 
-        {/* SHOW LIST */}
-        {shows && shows.length > 0 && (
-          <div className="sd-fade-up sd-d3" style={{ marginBottom: '3rem' }}>
-            {shows.map((show, index) => (
-              <div key={show.id} className="sd-row">
+            {/* Section label */}
+            <div className={`sdp-section-label sdp-sr ${tableVisible ? 'sdp-sr-visible' : ''}`}>
+              <span className="sdp-section-label-text">Upcoming</span>
+              <div className="sdp-section-label-line" />
+              <span className="sdp-section-label-count">
+                {shows.length} show{shows.length !== 1 ? 's' : ''}
+              </span>
+            </div>
 
-                {/* DATE BLOCK */}
-                <div className="sd-date-block">
-                  <p style={{
-                    fontFamily: "'Bebas Neue', sans-serif",
-                    fontSize: '1.6rem',
-                    lineHeight: 1,
-                    letterSpacing: '0.04em',
-                    color: '#fff',
-                    marginBottom: '0.15rem',
-                  }}>
-                    {new Date(show.show_date).toLocaleDateString('id-ID', { day: '2-digit' })}
-                  </p>
-                  <p style={{
-                    fontFamily: "'Barlow', sans-serif",
-                    fontSize: '0.65rem',
-                    letterSpacing: '0.2em',
-                    textTransform: 'uppercase',
-                    color: '#e8200c',
-                    fontWeight: 400,
-                  }}>
-                    {new Date(show.show_date).toLocaleDateString('id-ID', { month: 'short' })}
-                  </p>
-                  <p style={{
-                    fontFamily: "'Barlow', sans-serif",
-                    fontSize: '0.6rem',
-                    letterSpacing: '0.1em',
-                    color: '#444',
-                    fontWeight: 300,
-                  }}>
-                    {new Date(show.show_date).getFullYear()}
-                  </p>
-                </div>
+            {/* Table header */}
+            <div
+              className={`sdp-table-header sdp-sr ${tableVisible ? 'sdp-sr-visible' : ''}`}
+              style={{ transitionDelay: '0.1s' }}
+            >
+              <span>Show</span>
+              <span>Time</span>
+              <span>Location</span>
+              <span>Show Detail</span>
+            </div>
 
-                {/* EVENT INFO */}
-                <div>
-                  <p style={{
-                    fontFamily: "'Bebas Neue', sans-serif",
-                    fontSize: '1.3rem',
-                    letterSpacing: '0.08em',
-                    color: '#fff',
-                    marginBottom: '0.3rem',
-                    lineHeight: 1,
-                  }}>
-                    {show.event_name.toUpperCase()}
-                  </p>
-                  <p style={{
-                    fontFamily: "'Barlow', sans-serif",
-                    fontSize: '0.78rem',
-                    letterSpacing: '0.15em',
-                    textTransform: 'uppercase',
-                    color: '#555',
-                    fontWeight: 300,
-                  }}>
-                    {show.venue}{show.city ? ` · ${show.city}` : ''}
-                  </p>
-                </div>
+            {/* Rows */}
+            <div style={{ marginBottom: '1rem' }}>
+              {shows.map((show, index) => {
+                const date    = new Date(show.show_date)
+                const dateStr = date.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day:   'numeric',
+                  year:  'numeric',
+                })
+                const time   = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                const hasTime = time !== '00:00'
 
-                {/* ACTION */}
-                <div className="sd-row-action">
-                  {show.is_sold_out ? (
-                    <span className="sd-sold-out">SOLD OUT</span>
-                  ) : show.ticket_url ? (
-                    <a
-                      href={show.ticket_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="sd-ticket-btn"
-                    >
-                      GET TICKETS →
-                    </a>
-                  ) : (
-                    <span style={{
-                      fontFamily: "'Barlow', sans-serif",
-                      fontSize: '0.75rem',
-                      letterSpacing: '0.15em',
-                      color: '#333',
-                      fontWeight: 300,
-                    }}>
-                      TBA
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+                const ticketBtn = show.is_sold_out ? (
+                  <span className="sdp-btn-disabled">Sold Out</span>
+                ) : show.ticket_url ? (
+                  <a href={show.ticket_url} target="_blank" rel="noopener noreferrer" className="sdp-btn">
+                    More Info
+                  </a>
+                ) : (
+                  <span className="sdp-btn-disabled">TBA</span>
+                )
+
+                return (
+                  <div
+                    key={show.id}
+                    className={`sdp-row sdp-row-reveal ${tableVisible ? 'sdp-sr-visible' : ''}`}
+                    style={{ transitionDelay: `${0.12 + index * 0.07}s` }}
+                  >
+                    {/* ── KOLOM 1: nama show ─────────────────────── */}
+                    {/*
+                      Di desktop: cell biasa dalam grid.
+                      Di mobile:  berisi sdp-row-inner-top (nama + tombol sejajar)
+                                  + sdp-mobile-meta (tanggal & venue di bawah).
+                    */}
+                    <div className="sdp-cell">
+
+                      {/* Baris atas: nama show (kiri) + tombol (kanan) — mobile only via flex */}
+                      <div className="sdp-row-inner-top">
+                        <div>
+                          <span className="sdp-show-name">{show.event_name}</span>
+                          {show.city && <span className="sdp-show-city">{show.city}</span>}
+
+                          {/* Meta info — HANYA TAMPIL di mobile (via CSS) */}
+                          <div className="sdp-mobile-meta">
+                            <span className="sdp-mobile-meta-item">
+                              <strong>{dateStr}</strong>
+                              {hasTime && ` · ${time} WIB`}
+                            </span>
+                            <span className="sdp-mobile-meta-item">
+                              {show.venue}{show.city ? ` — ${show.city}` : ''}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/*
+                          Tombol versi MOBILE — tampil di dalam sdp-row-inner-top
+                          di mobile, disembunyikan di desktop via CSS.
+                        */}
+                        <div className="sdp-cell-right sdp-btn-mobile-only">
+                          {ticketBtn}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── KOLOM 2: waktu — desktop only ───────────── */}
+                    <div className="sdp-cell sdp-cell-desktop-time">
+                      <span className="sdp-time">{dateStr}</span>
+                      {hasTime && (
+                        <span style={{
+                          display: 'block',
+                          fontSize: 'clamp(11px, 1vw, 15px)',
+                          color: '#aaa',
+                          letterSpacing: '0.08em',
+                          marginTop: '0.15rem',
+                        }}>
+                          {time} WIB
+                        </span>
+                      )}
+                    </div>
+
+                    {/* ── KOLOM 3: lokasi — desktop only ──────────── */}
+                    <div className="sdp-cell sdp-cell-desktop-location">
+                      <span className="sdp-location-name">
+                        {show.venue}{show.city ? ` — ${show.city}` : ''}
+                      </span>
+                    </div>
+
+                    {/* ── KOLOM 4: tombol — desktop only ──────────── */}
+                    <div className="sdp-cell sdp-cell-right sdp-btn-desktop-only">
+                      {ticketBtn}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
-        {/* SEE ALL */}
-        <div className="sd-fade-up sd-d4" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1.5rem',
-          paddingTop: '1.5rem',
-        }}>
-          <div style={{ flex: 1, height: '1px', background: '#161616' }} />
-          <Link href="/show-dates" className="sd-see-all">
-            SEE ALL SHOWS →
+        {/* SEE MORE */}
+        <div
+          ref={ctaRef as React.RefObject<HTMLDivElement>}
+          className={`sdp-see-more-wrap sdp-sr ${ctaVisible ? 'sdp-sr-visible' : ''}`}
+        >
+          <Link href="/show-dates" className="sdp-see-more-btn">
+            See All Shows →
           </Link>
-          <div style={{ flex: 1, height: '1px', background: '#161616' }} />
         </div>
       </div>
 
-      {/* ── MARQUEE BOTTOM ── */}
+      {/* MARQUEE BOTTOM */}
       <div
-        className="sd-marquee-bottom"
+        className="sdp-marquee-bottom"
         style={{
           overflow: 'hidden',
-          padding: '14px 0',
-          borderTop: '1px solid #161616',
-          marginTop: '4rem',
-          position: 'relative',
-          zIndex: 2,
-          background: '#e8200c',
+          padding: '9px 0',
+          borderTop: '2px solid #111',
+          marginTop: '1rem',
+          background: '#fff',
         }}
       >
-        <div className="sd-marquee-track" style={{ animationDuration: '18s' }}>
+        <div className="sdp-marquee-track" style={{ animationDuration: '20s' }}>
           {[...Array(2)].flatMap((_, gi) =>
-            ['DAKARA', '✦', 'LIVE', '✦', 'JAKARTA', '✦', 'ON STAGE', '✦',
-             'DAKARA', '✦', 'LIVE', '✦', 'JAKARTA', '✦', 'ON STAGE', '✦'].map((item, i) => (
+            ['LIVE', '✦', 'ON STAGE', '✦', 'UPCOMING', '✦', 'TICKETS', '✦',
+             'LIVE', '✦', 'ON STAGE', '✦', 'UPCOMING', '✦', 'TICKETS', '✦'].map((item, i) => (
               <span key={`${gi}-${i}`} style={{
-                fontFamily: "'Bebas Neue', sans-serif",
-                fontSize: '0.95rem',
-                letterSpacing: '0.25em',
-                color: '#fff',
-                padding: '0 1.5rem',
+                fontFamily: "'Space Mono', monospace",
+                fontSize: '0.7rem',
+                letterSpacing: '0.3em',
+                color: '#bbb',
+                padding: '0 2rem',
                 whiteSpace: 'nowrap',
               }}>
                 {item}

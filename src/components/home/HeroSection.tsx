@@ -3,19 +3,37 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Swiper, SwiperSlide } from 'swiper/react'
-import { Autoplay, Navigation, Pagination } from 'swiper/modules'
+import { Autoplay, Pagination } from 'swiper/modules'
 
 import 'swiper/css'
-import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 
 export default function HeroSection() {
   const [slides, setSlides] = useState<any[]>([])
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [logoReady, setLogoReady] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
     async function fetchHeroData() {
+      const { data: logoData } = await supabase
+        .from('logo_settings')
+        .select('logo_url')
+        .eq('id', 1)
+        .maybeSingle()
+
+      if (logoData?.logo_url) {
+        const img = new Image()
+        img.onload = () => {
+          setLogoUrl(logoData.logo_url)
+          setLogoReady(true)
+        }
+        img.onerror = () => setLogoReady(true)
+        img.src = logoData.logo_url
+      } else {
+        setLogoReady(true)
+      }
+
       const { data: bannerData } = await supabase
         .from('hero_settings')
         .select('*')
@@ -26,81 +44,133 @@ export default function HeroSection() {
       } else {
         setSlides([{ background_url: '/images/hero-bg.jpg' }])
       }
-
-      const { data: logoData } = await supabase
-        .from('logo_settings')
-        .select('logo_url')
-        .eq('id', 1)
-        .maybeSingle()
-
-      if (logoData?.logo_url) {
-        setLogoUrl(logoData.logo_url)
-      }
     }
     fetchHeroData()
   }, [supabase])
 
   return (
-    <section
-      style={{
-        position: 'relative',
-        height: '100dvh',
-        minHeight: '100vh',
-        width: '100%',
-        overflow: 'hidden',
-        background: '#000',
-      }}
-    >
+    <section className="hero-section">
       <style dangerouslySetInnerHTML={{ __html: `
-        /* =============================================
-           LOGO ANIMATION
-        ============================================= */
-        @keyframes logo-sway-spin {
-          0%   { transform: translateY(0px)   rotate(0deg)   scale(1);    }
-          5%   { transform: translateY(-5px)  rotate(-12deg) scale(1.02); }
-          10%  { transform: translateY(-5px)  rotate(12deg)  scale(1.02); }
-          15%  { transform: translateY(-5px)  rotate(-12deg) scale(1.02); }
-          20%  { transform: translateY(-5px)  rotate(12deg)  scale(1.02); }
-          25%  { transform: translateY(0px)   rotate(0deg)   scale(1);    }
-          30%  { transform: translateY(-10px) rotate(-20deg) scale(1.05); }
-          55%  { transform: translateY(-20px) rotate(360deg) scale(1.1);  }
-          65%  { transform: translateY(5px)   rotate(360deg) scale(0.97); }
-          70%  { transform: translateY(-3px)  rotate(360deg) scale(1.02); }
-          75%  { transform: translateY(0px)   rotate(360deg) scale(1);    }
-          100% { transform: translateY(0px)   rotate(360deg) scale(1);    }
+
+        /* ── Layout utama ── */
+        .hero-section {
+          position: relative;
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          overflow: hidden;
+          background: #000;
+          box-sizing: border-box;
+          padding-bottom: env(safe-area-inset-bottom, 0px);
         }
 
+        /* ── Logo appear ── */
+        @keyframes logo-appear {
+          from { opacity: 0; transform: scale(0.85); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+
+        /* ── 3D Swing: depan → kiri → belakang → kanan → depan ── */
+        @keyframes logo-3d-swing {
+          0%   { transform: rotateY(0deg);    }
+          25%  { transform: rotateY(-60deg);  }
+          50%  { transform: rotateY(-180deg); }
+          75%  { transform: rotateY(-300deg); }
+          100% { transform: rotateY(-360deg); }
+        }
+
+        /* ── Float naik turun halus (pada wrapper) ── */
+        @keyframes logo-float {
+          0%,  100% { transform: translateY(0px);   }
+          50%        { transform: translateY(-10px); }
+        }
+
+        /* ── Wrapper: gabung appear + float ── */
+        .hero-logo-wrapper {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: clamp(140px, 45vw, 600px);
+          max-width: 85vw;
+          perspective: 900px;
+          animation: logo-appear 0.8s ease forwards, logo-float 4s ease-in-out 0.8s infinite;
+          opacity: 0;
+        }
+
+        @media (max-width: 768px) {
+          .hero-logo-wrapper {
+            width: clamp(140px, 60vw, 300px) !important;
+            max-width: 80vw !important;
+          }
+        }
+
+        /* ── Glow shadow di bawah logo ── */
+        .hero-logo-wrapper::after {
+          content: '';
+          position: absolute;
+          bottom: -16px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 55%;
+          height: 16px;
+          background: radial-gradient(
+            ellipse at center,
+            rgba(255, 80, 0, 0.3) 0%,
+            transparent 70%
+          );
+          filter: blur(5px);
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        /* ── Logo image: 3D swing ── */
         .hero-logo {
-          animation: logo-sway-spin 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-          width: clamp(200px, 55vw, 700px);
+          position: relative;
+          z-index: 2;
+          width: 100%;
           filter:
-            drop-shadow(0 0 40px rgba(255, 60, 0, 0.35))
-            drop-shadow(0 0 80px rgba(255, 30, 0, 0.15))
-            drop-shadow(0 4px 20px rgba(0, 0, 0, 0.7));
+            drop-shadow(0 0 40px rgba(255, 60, 0, 0.45))
+            drop-shadow(0 4px 24px rgba(0, 0, 0, 0.85));
           pointer-events: none;
           will-change: transform;
-          transform-origin: center center;
+          transform-style: preserve-3d;
+          backface-visibility: visible;
+          animation: logo-3d-swing 6s linear 0.8s infinite;
         }
 
-        
-        /* =============================================
-           SUBTITLE ENTRANCE
-        ============================================= */
+        /* ── Logo text fallback: 3D swing ── */
+        .hero-logo-text {
+          position: relative;
+          z-index: 2;
+          width: 100%;
+          font-size: clamp(3rem, 10vw, 5rem);
+          font-weight: 900;
+          color: #fff;
+          letter-spacing: 0.2em;
+          text-shadow: 0 0 30px rgba(255, 60, 0, 0.4);
+          font-family: Impact, "Arial Black", sans-serif;
+          margin: 0;
+          text-align: center;
+          pointer-events: none;
+          will-change: transform;
+          transform-style: preserve-3d;
+          animation: logo-3d-swing 6s linear 0.8s infinite;
+        }
+
+        /* ── Subtitle ── */
         @keyframes subtitle-entrance {
-          from { opacity: 0; transform: translateY(20px); }
+          from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0px);  }
         }
 
         .hero-subtitle {
-          animation: subtitle-entrance 1.5s ease-out 0.5s both;
+          animation: subtitle-entrance 1s ease-out 0.9s both;
         }
 
-        /* =============================================
-           SCAN LINE
-        ============================================= */
+        /* ── Scanline ── */
         @keyframes scanline {
           0%   { transform: translateY(-100%); }
-          100% { transform: translateY(100vh); }
+          100% { transform: translateY(100%);  }
         }
 
         .hero-scanline {
@@ -111,22 +181,33 @@ export default function HeroSection() {
           background: linear-gradient(
             to right,
             transparent 0%,
-            rgba(255, 80, 0, 0.15) 30%,
-            rgba(255, 80, 0, 0.3) 50%,
-            rgba(255, 80, 0, 0.15) 70%,
+            rgba(255, 80, 0, 0.18) 50%,
             transparent 100%
           );
-          animation: scanline 6s linear infinite;
+          animation: scanline 8s linear infinite;
           pointer-events: none;
           z-index: 5;
+          will-change: transform;
         }
 
-        /* =============================================
-           INSTAGRAM-STYLE PROGRESS BAR
-        ============================================= */
+        @media (hover: none) {
+          .hero-scanline { display: none; }
+        }
+
+        /* ── Swiper & Pagination ── */
+        .mySwiper {
+          width: 100%;
+          height: 100%;
+          cursor: grab;
+        }
+        .mySwiper:active { cursor: grabbing; }
+
+        .swiper-button-next,
+        .swiper-button-prev { display: none !important; }
+
         .swiper-pagination-custom {
           position: absolute;
-          top: 20px;
+          top: calc(20px + env(safe-area-inset-top, 0px));
           left: 0;
           right: 0;
           display: flex;
@@ -146,11 +227,6 @@ export default function HeroSection() {
           overflow: hidden;
           cursor: pointer;
           pointer-events: auto;
-          transition: background 0.2s;
-        }
-
-        .swiper-pagination-bullet:hover {
-          background: rgba(255, 255, 255, 0.4) !important;
         }
 
         .swiper-pagination-bullet-active::after {
@@ -168,211 +244,142 @@ export default function HeroSection() {
           to   { transform: scaleX(1); }
         }
 
-        /* =============================================
-           SWIPER CLEANUP
-        ============================================= */
-        .swiper-button-next,
-        .swiper-button-prev { display: none !important; }
-
-        .mySwiper {
-          width: 100%;
-          height: 100%;
-          cursor: grab;
-        }
-        .mySwiper:active {
-          cursor: grabbing;
+        @media (max-width: 768px) {
+          .swiper-pagination-custom {
+            top: calc(12px + env(safe-area-inset-top, 0px)) !important;
+            padding: 0 14px !important;
+            gap: 4px !important;
+          }
+          .swiper-pagination-bullet { height: 2px !important; }
         }
 
-        /* =============================================
-           VIGNETTE
-        ============================================= */
+        /* ── Vignette ── */
         .hero-vignette {
           position: absolute;
           inset: 0;
           background: radial-gradient(
             ellipse at center,
             transparent 40%,
-            rgba(0, 0, 0, 0.6) 100%
+            rgba(0, 0, 0, 0.55) 100%
           );
           z-index: 3;
           pointer-events: none;
         }
 
-        /* =============================================
-           NOISE TEXTURE
-        ============================================= */
-        .hero-noise {
-          position: absolute;
-          inset: 0;
-          opacity: 0.04;
-          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-          background-size: 256px 256px;
-          z-index: 4;
-          pointer-events: none;
-        }
-
-        /* =============================================
-           TAGLINE
-        ============================================= */
-        @keyframes tagline-fade {
-          from { opacity: 0; transform: translateY(10px); }
-          to   { opacity: 1; transform: translateY(0);    }
-        }
-
-        .hero-tagline {
-          animation: tagline-fade 2s ease-out 1s both;
-        }
-
-        /* =============================================
-           SCROLL INDICATOR
-        ============================================= */
+        /* ── Scroll indicator ── */
         @keyframes scroll-bounce {
-          0%, 100% { transform: translateY(0);   opacity: 0.5; }
-          50%       { transform: translateY(8px); opacity: 1;   }
-        }
-        .scroll-indicator {
-          animation: scroll-bounce 2s ease-in-out infinite;
+          0%, 100% { opacity: 0.4; transform: translateX(-50%) translateY(0); }
+          50%       { opacity: 0.9; transform: translateX(-50%) translateY(8px); }
         }
 
-        /* =============================================
-           MOBILE RESPONSIVE
-        ============================================= */
-        @media (max-width: 768px) {
-          .hero-logo {
-            width: clamp(180px, 78vw, 380px) !important;
-          }
-          .swiper-pagination-custom {
-            top: 12px !important;
-            padding: 0 14px !important;
-            gap: 4px !important;
-          }
-          .swiper-pagination-bullet {
-            height: 2px !important;
-          }
-          .hero-slide-bg {
-            background-position: center top !important;
-          }
+        .scroll-indicator {
+          animation: scroll-bounce 2.5s ease-in-out infinite;
         }
+
       `}} />
 
-      {/* SCANLINE */}
+      {/* Scanline */}
       <div className="hero-scanline" />
 
-      {/* BACKGROUND SLIDER */}
-      <Swiper
-        key={slides.length}
-        modules={[Autoplay, Navigation, Pagination]}
-        className="mySwiper"
-        spaceBetween={0}
-        slidesPerView={1}
-        grabCursor={true}
-        allowTouchMove={true}
-        pagination={{
-          clickable: true,
-          el: '.swiper-pagination-custom',
-        }}
-        autoplay={{
-          delay: 5000,
-          disableOnInteraction: false,
-        }}
-        loop={slides.length > 1}
-        style={{ position: 'absolute', inset: 0, zIndex: 1 }}
-      >
-        {slides.map((slide, index) => (
-          <SwiperSlide key={slide.id || index}>
-            <div
-              className="hero-slide-bg"
-              style={{
-                width: '100%',
-                height: '100%',
-                backgroundImage: `url("${slide.background_url}")`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center center',
-              }}
-            >
-              {/* Cinematic gradient overlay */}
-              <div style={{
-                position: 'absolute',
-                inset: 0,
-                background: `
-                  linear-gradient(
+      {/* Swiper background */}
+      {slides.length > 0 && (
+        <Swiper
+          key={slides.length}
+          modules={[Autoplay, Pagination]}
+          className="mySwiper"
+          spaceBetween={0}
+          slidesPerView={1}
+          grabCursor={true}
+          allowTouchMove={true}
+          pagination={{ clickable: true, el: '.swiper-pagination-custom' }}
+          autoplay={{ delay: 5000, disableOnInteraction: false }}
+          loop={slides.length > 1}
+          style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+        >
+          {slides.map((slide, index) => (
+            <SwiperSlide key={slide.id || index}>
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  backgroundImage: `url("${slide.background_url}")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center center',
+                }}
+              >
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: `linear-gradient(
                     to bottom,
                     rgba(0,0,0,0.35) 0%,
                     rgba(0,0,0,0.0)  30%,
                     rgba(0,0,0,0.0)  60%,
                     rgba(0,0,0,0.85) 100%
-                  )
-                `,
-              }} />
-            </div>
-          </SwiperSlide>
-        ))}
+                  )`,
+                }} />
+              </div>
+            </SwiperSlide>
+          ))}
 
-        {/* Progress bar */}
-        <div className="swiper-pagination-custom" />
-      </Swiper>
+          <div className="swiper-pagination-custom" />
+        </Swiper>
+      )}
 
-      {/* VIGNETTE */}
+      {/* Vignette overlay */}
       <div className="hero-vignette" />
 
-      {/* NOISE */}
-      <div className="hero-noise" />
+      {/* Logo + subtitle */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          pointerEvents: 'none',
+          gap: '0.5rem',
+          paddingLeft: '1rem',
+          paddingRight: '1rem',
+          boxSizing: 'border-box',
+        }}
+      >
+        {logoReady && (
+          <>
+            <div className="hero-logo-wrapper">
+              {logoUrl ? (
+                <img src={logoUrl} alt="DAKARA Logo" className="hero-logo" />
+              ) : (
+                <h1 className="hero-logo-text">DAKARA</h1>
+              )}
+            </div>
 
-      {/* CENTER CONTENT */}
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0, right: 0, bottom: 0,
-        zIndex: 10,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        pointerEvents: 'none',
-        gap: '0.5rem',
-      }}>
-
-        {/* LOGO */}
-        {logoUrl ? (
-          <img src={logoUrl} alt="DAKARA Logo" className="hero-logo" />
-        ) : (
-          <h1
-            className="hero-logo"
-            style={{
-              fontSize: 'clamp(3rem, 10vw, 5rem)',
-              fontWeight: '900',
-              color: '#fff',
-              letterSpacing: '0.2em',
-              textShadow: '0 0 30px rgba(255,60,0,0.4), 0 0 60px rgba(255,60,0,0.2)',
-              fontFamily: 'Impact, "Arial Black", sans-serif',
-            }}
-          >
-            DAKARA
-          </h1>
+            <div className="hero-subtitle" style={{ marginTop: '0.5rem' }}>
+              <p style={{
+                fontSize: 'clamp(0.55rem, 1.4vw, 0.85rem)',
+                letterSpacing: '0.75em',
+                color: 'rgba(255,255,255,0.5)',
+                textTransform: 'uppercase',
+                fontWeight: '400',
+                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                margin: 0,
+              }}>
+                Jakarta Rock Collective
+              </p>
+            </div>
+          </>
         )}
-
-        {/* TAGLINE */}
-        <div className="hero-tagline" style={{ marginTop: '0.5rem' }}>
-          <p style={{
-            fontSize: 'clamp(0.55rem, 1.4vw, 0.85rem)',
-            letterSpacing: '0.75em',
-            color: 'rgba(255,255,255,0.55)',
-            textTransform: 'uppercase',
-            fontWeight: '400',
-            fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
-            margin: 0,
-          }}>
-            Jakarta Rock Collective
-          </p>
-        </div>
       </div>
 
-      {/* SCROLL INDICATOR */}
+      {/* Scroll indicator */}
       <div
         className="scroll-indicator"
         style={{
           position: 'absolute',
-          bottom: '32px',
+          bottom: 'calc(32px + env(safe-area-inset-bottom, 0px))',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 10,
