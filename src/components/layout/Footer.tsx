@@ -173,7 +173,7 @@ export default function Footer() {
           white-space: nowrap;
           position: relative;
         }
-        .ft-nav-link::after {
+        .ft-nav-link:after {
           content: '';
           position: absolute;
           bottom: -2px; left: 0;
@@ -182,7 +182,7 @@ export default function Footer() {
           transition: width 0.3s cubic-bezier(0.23,1,0.32,1);
         }
         .ft-nav-link:hover { color: #fff; }
-        .ft-nav-link:hover::after { width: 100%; }
+        .ft-nav-link:hover:after { width: 100%; }
 
         /* ── DEV LINK ── */
         .ft-dev-link {
@@ -223,7 +223,7 @@ export default function Footer() {
 
         @media (max-width: 560px) {
           .ft-contact-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 1.25rem;
           }
         }
@@ -373,6 +373,7 @@ export default function Footer() {
                 letterSpacing: '0.04em',
                 color: '#888',
                 fontWeight: 700,
+                wordBreak: 'break-word',
               }}>
                 {item.value}
               </p>
@@ -399,7 +400,7 @@ export default function Footer() {
           letterSpacing: '0.15em',
           color: '#2a2a2a',
           textTransform: 'uppercase',
-          whiteSpace: 'nowrap',
+          lineHeight: 1.6,
         }}>
           © Dakara 2026, All Rights Reserved —{' '}
           <a
