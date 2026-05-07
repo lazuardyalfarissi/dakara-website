@@ -74,7 +74,6 @@ const VinylDecor = ({ spinning }: { spinning: boolean }) => (
     xmlns="http://www.w3.org/2000/svg"
     style={{
       position: 'absolute',
-      // ✅ FIX: was right:-80px causing overflow; now hidden safely within cover
       right: '-60px',
       top: '50%',
       transform: 'translateY(-50%)',
@@ -137,7 +136,7 @@ export default function LatestRelease({ release }: Props) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setIsVisible(true) },
-      { threshold: 0.1 } // ✅ FIX: lower threshold so mobile triggers earlier
+      { threshold: 0.1 }
     )
     if (sectionRef.current) observer.observe(sectionRef.current)
     return () => observer.disconnect()
@@ -173,7 +172,6 @@ export default function LatestRelease({ release }: Props) {
         background: '#080808',
         color: '#fff',
         position: 'relative',
-        // ✅ FIX: clip overflow from VinylDecor and bg-text
         overflow: 'hidden',
       }}
     >
@@ -186,6 +184,7 @@ export default function LatestRelease({ release }: Props) {
           width: max-content;
           animation: lr-scroll 20s linear infinite;
           will-change: transform;
+          -webkit-transform: translateZ(0);
         }
         .lr-marquee-track-rev {
           animation: lr-scroll-rev 26s linear infinite;
@@ -218,7 +217,7 @@ export default function LatestRelease({ release }: Props) {
         /* ── COVER GLOW PULSE ── */
         @keyframes glow-pulse {
           0%, 100% { box-shadow: 0 0 60px 0px rgba(232,32,12,0.3), 0 30px 80px rgba(0,0,0,0.9); }
-          50%       { box-shadow: 0 0 100px 20px rgba(232,32,12,0.15), 0 30px 80px rgba(0,0,0,0.9); }
+          50%      { box-shadow: 0 0 100px 20px rgba(232,32,12,0.15), 0 30px 80px rgba(0,0,0,0.9); }
         }
 
         /* ── PLATFORM BUTTON ── */
@@ -285,7 +284,6 @@ export default function LatestRelease({ release }: Props) {
           transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
           position: relative;
           overflow: hidden;
-          /* ✅ FIX: prevent button from overflowing on small screens */
           max-width: 100%;
           box-sizing: border-box;
         }
@@ -363,14 +361,14 @@ export default function LatestRelease({ release }: Props) {
         .lr-type-badge::before {
           content: '';
           position: absolute;
-          top: 0; left: -100%;
+          top: 0; left: 0;
           width: 100%; height: 100%;
           background: linear-gradient(90deg, transparent, rgba(232,32,12,0.2), transparent);
           animation: shimmer 2.5s ease-in-out infinite;
         }
         @keyframes shimmer {
-          from { left: -100%; }
-          to   { left: 200%; }
+          from { transform: translateX(-100%); }
+          to   { transform: translateX(200%); }
         }
 
         /* ── DIVIDER ── */
@@ -389,7 +387,6 @@ export default function LatestRelease({ release }: Props) {
         .lr-bg-text {
           position: absolute;
           font-family: 'Bebas Neue', sans-serif;
-          /* ✅ FIX: constrain size so it doesn't cause horizontal scroll */
           font-size: clamp(5rem, 15vw, 16rem);
           color: rgba(255,255,255,0.02);
           white-space: nowrap;
@@ -400,7 +397,6 @@ export default function LatestRelease({ release }: Props) {
           transform: translateY(-50%);
           letter-spacing: 0.05em;
           z-index: 0;
-          /* ✅ FIX: ensure it doesn't push layout */
           max-width: 100%;
           overflow: hidden;
         }
@@ -430,10 +426,9 @@ export default function LatestRelease({ release }: Props) {
         .lr-corner-br { bottom: -6px; right: -6px; border-width: 0 2px 2px 0; }
 
         /* ══════════════════════════════════════════
-           ✅ MOBILE RESPONSIVE FIXES
+           ✅ MOBILE RESPONSIVE FIXES (PERFORMANCE TUNED)
            ══════════════════════════════════════════ */
 
-        /* Main grid: stack on mobile */
         .lr-main-grid {
           display: grid;
           grid-template-columns: minmax(260px, 340px) 1fr;
@@ -443,44 +438,45 @@ export default function LatestRelease({ release }: Props) {
 
         @media (max-width: 768px) {
           .lr-main-grid {
-            /* Stack cover above info on mobile */
             grid-template-columns: 1fr;
             gap: 2.5rem;
           }
 
-          /* Limit cover width on mobile so it doesn't fill full screen */
+          /* MATIKAN ANIMASI BERAT DI MOBILE BIAR GAK LAG */
+          .lr-cover-container {
+            animation: none !important;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8) !important;
+          }
+          .lr-grain {
+            display: none !important;
+          }
+
           .lr-cover-wrap {
             max-width: 280px;
             margin: 0 auto;
-            /* Reset the slide-in transform origin to avoid clipping */
             transform: translateY(20px) !important;
           }
           .lr-cover-wrap.lr-visible {
             transform: translateY(0) !important;
           }
 
-          /* Center the cover year label */
           .lr-cover-year {
             text-align: center;
           }
 
-          /* Reduce main padding on mobile */
           .lr-main-content {
             padding: 3rem 1.25rem 2.5rem !important;
           }
 
-          /* Hide waveform on very small screens to save space */
           .lr-waveform-wrap {
             display: none;
           }
 
-          /* Primary button: full width on mobile */
           .lr-primary-btn {
             width: 100%;
             justify-content: center;
           }
 
-          /* Platform buttons: 2 per row on mobile */
           .lr-platforms-grid {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -489,14 +485,12 @@ export default function LatestRelease({ release }: Props) {
             justify-content: center;
           }
 
-          /* Description text slightly smaller */
           .lr-description {
             font-size: 0.9rem !important;
           }
         }
 
         @media (max-width: 480px) {
-          /* Single column platform buttons on very small screens */
           .lr-platforms-grid {
             grid-template-columns: 1fr !important;
           }
@@ -651,7 +645,6 @@ export default function LatestRelease({ release }: Props) {
               letterSpacing: '0.04em',
               margin: '0 0 1.5rem',
               textTransform: 'uppercase',
-              // ✅ FIX: prevent long title from overflowing
               wordBreak: 'break-word',
             }}>
               {release.title}
