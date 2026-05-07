@@ -35,11 +35,16 @@ interface MergedAlbum {
    DATA LAYER
 ════════════════════════════════════════════════════ */
 async function getDiscography(): Promise<MergedAlbum[]> {
-  // PENTING: Tambah .trim() biar aman dari spasi nyelip di .env
-  const artistId = process.env.SPOTIFY_ARTIST_ID!.trim()
+  // PENTING: Fix error Vercel pakai fallback string kosong ('')
+  const artistId = (process.env.SPOTIFY_ARTIST_ID || '').trim()
+
+  if (!artistId) {
+    console.warn('⚠️ [WARNING]: SPOTIFY_ARTIST_ID belum di-set di Environment Variables!')
+  }
 
   const [spotifyResult, supabaseResult] = await Promise.allSettled([
-    getArtistDiscography(artistId),
+    // Kalau artistId kosong, balikin array kosong aja daripada error hit API
+    artistId ? getArtistDiscography(artistId) : Promise.resolve([]),
     (async () => {
       const supabase = await createServerSupabaseClient()
       const { data } = await supabase
